@@ -1,0 +1,244 @@
+create database blinkit;
+
+use blinkit;
+
+create table sale
+(
+	item_fat_content varchar(20),
+    item_identifier varchar(30),
+    item_type varchar(100),
+    outlet_establishment_year year,
+    outlet_identifier varchar(50),
+    outlet_location_type varchar(50),
+    outlet_size varchar(50),
+    outlet_type varchar(100),
+    item_visibility VARCHAR(50),
+    item_weight VARCHAR(50) Null,
+    total_sales double,
+    rating double
+);
+
+
+LOAD DATA INFILE 'BlinkIT Grocery Data.csv'
+INTO TABLE sale
+FIELDS TERMINATED BY ',' 
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 lines;
+
+select * from sale;
+
+# 1.List all item types available in the dataset.
+
+SELECT 
+    item_type,count(*) as type_cnt
+FROM
+    sale
+    group by item_type;
+    
+# 2.Show all items that have 'Low Fat' as their fat content.
+
+SELECT 
+    *
+FROM
+    sale
+WHERE
+    item_fat_content = 'low fat';
+    
+# 3.Which 5 items have the highest total sales?
+
+SELECT 
+    item_type, ROUND(SUM(total_sales), 2) AS total
+FROM
+    sale
+GROUP BY item_type
+ORDER BY total DESC
+LIMIT 5;
+
+# 4.Find all items that weigh more than 15 units and have a rating of 4 or more.
+
+SELECT 
+    item_identifier, rating
+FROM
+    sale
+WHERE
+    item_weight > 15 AND rating >= 4
+ORDER BY rating;
+
+# 5.How many unique outlets exist in the dataset?
+
+SELECT 
+    outlet_identifier
+FROM
+    sale
+GROUP BY outlet_identifier;
+
+# 6.Calculate the average total sales for each item type.
+
+SELECT 
+    item_type, ROUND(AVG(total_sales), 2) as avg_total
+FROM
+    sale
+GROUP BY item_type;
+
+# 7.Count how many items are sold in each outlet type.
+
+SELECT 
+    outlet_type, COUNT(item_type) AS cnt
+FROM
+    sale
+GROUP BY outlet_type
+ORDER BY cnt desc;
+
+# 8.Find the average item weight for 'Soft Drinks'.
+
+SELECT 
+    item_type, round(AVG(item_weight),2) AS avg_wgt
+FROM
+    sale
+WHERE
+    item_type = 'soft drinks';
+    
+#9. List the outlet identifier and total sales for each outlet, ordered by total sales descending.
+
+SELECT 
+    outlet_identifier, ROUND(SUM(total_sales), 2) AS total
+FROM
+    sale
+GROUP BY outlet_identifier
+ORDER BY total DESC;
+
+#10. Which outlet size has the highest average rating?
+
+SELECT 
+    outlet_size, ROUND(AVG(rating), 2) AS avg_rtg
+FROM
+    sale
+GROUP BY outlet_size
+ORDER BY avg_rtg DESC
+LIMIT 1;
+
+# 11.Show the average total sales grouped by both item fat content and outlet type.
+
+SELECT 
+    item_fat_content,
+    outlet_type,
+    ROUND(AVG(total_sales)) AS avg_t
+FROM
+    sale
+GROUP BY item_fat_content , outlet_type;
+
+# 12.Find items whose total sales are above the average total sales across all items.
+
+SELECT 
+    item_type, round(avg(total_sales),2) AS avg_t
+FROM
+    sale
+group by item_type
+having avg_t > (select avg(total_sales) from sale);
+
+# 13.List the top 3 performing outlets (by total sales).
+
+SELECT 
+    outlet_identifier, ROUND(SUM(total_sales), 2)
+FROM
+    sale
+GROUP BY outlet_identifier
+ORDER BY outlet_identifier DESC
+LIMIT 3;
+
+# 14.Which item type contributes the most to total sales?
+
+select item_type, sum_t
+from 
+	(select item_type,
+		round(sum(total_sales),2) as sum_t, 
+		dense_rank()over(order by round(sum(total_sales),2)  desc) as rank_t
+	from sale group by item_type) as a
+where rank_t = 1;
+
+# 15.Find outlet(s) established before 2005 and their average item visibility.
+
+SELECT 
+    outlet_establishment_year, ROUND(AVG(item_visibility), 2)
+FROM
+    sale
+WHERE
+    outlet_establishment_year < 2005
+GROUP BY outlet_establishment_year;
+
+# 16.Which items have a rating above the average rating of their respective item type?
+
+SELECT 
+    item_identifier, item_type, rating
+FROM
+    sale s1
+WHERE
+    rating > (SELECT 
+            AVG(rating)
+        FROM
+            sale s2
+        WHERE
+            s2.item_type = s1.item_type)
+ORDER BY rating;
+            
+CREATE INDEX idx_item_type_rating
+ON sale (item_type, rating);
+
+# 17.Rank items within each outlet by total sales using window functions.
+
+select 	outlet_identifier,
+		item_identifier ,
+		round(sum(total_sales),2) as sum_t, 
+		dense_rank()over(partition by outlet_identifier order by sum(total_sales)) as t_rank 
+from sale 
+group by outlet_identifier, item_identifier;
+
+# 18.Calculate the running total of sales for each outlet over the item list.
+
+with cum_t as (SELECT 
+    item_identifier,
+    outlet_identifier,
+    ROUND(SUM(total_sales), 2) AS sum_t
+FROM
+    sale
+GROUP BY item_identifier , outlet_identifier)
+select item_identifier,
+    outlet_identifier,
+    sum_t,
+    SUM(sum_t) over(partition by outlet_identifier order by item_identifier) as t
+FROM
+   cum_t
+GROUP BY item_identifier , outlet_identifier;
+
+# 19.Create a sales bucket (<50, 50-100, 100-150, >150) and count how many items fall into each.
+
+SELECT 
+    item_type,
+    COUNT(CASE
+        WHEN total_sales < 50 THEN 'Less < 50'
+        WHEN total_sales BETWEEN 50 AND 100 THEN 'B/W 50 and 100'
+        WHEN total_sales BETWEEN 100 AND 150 THEN 'B/W 100 and 150'
+        ELSE 'Greater then 150'
+    END) AS sales_count
+FROM
+    sale
+GROUP BY item_type
+ORDER BY sales_count;
+
+# 20.What percentage of total sales comes from each item type? Show results ordered by highest contribution.
+
+SELECT 
+    item_type,
+    ROUND(SUM(total_sales) / (SELECT 
+                    SUM(total_sales)
+                FROM
+                    sale) * 100,
+            2) AS 'Percentage'
+FROM
+    sale
+GROUP BY item_type
+ORDER BY percentage DESC; 
+
+
+
