@@ -1,0 +1,21 @@
+1.List all distinct item types available in the dataset.
+2.Show all items that have 'Low Fat' as their fat content.
+3.Which 5 items have the highest total sales?
+4.Find all items that weigh more than 15 units and have a rating of 4 or more.
+5.How many unique outlets exist in the dataset?
+6.Calculate the average total sales for each item type.
+7.Count how many items are sold in each outlet type.
+8.Find the average item weight for 'Soft Drinks'.
+9.List the outlet identifier and total sales for each outlet, ordered by total sales descending.
+10.Which outlet size has the highest average rating?
+11.Show the average total sales grouped by both item fat content and outlet type.
+12.Find items whose total sales are above the average total sales across all items.
+13.List the top 3 performing outlets (by total sales).
+14.Which item type contributes the most to total sales?
+15.Find outlet(s) established before 2005 and their average item visibility.
+16.Which items have a rating above the average rating of their respective item type?
+17.Rank items within each outlet by total sales using window functions.
+18.Calculate the running total of sales for each outlet over the item list.
+19.Create a sales bucket (<50, 50-100, 100-150, >150) and count how many items fall into each.
+20.What percentage of total sales comes from each item type? Show results ordered by highest contribution.
+
